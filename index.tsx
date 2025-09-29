@@ -24,7 +24,7 @@ async function decryptAllMessages(channel_id) {
     for (const msg of messages) {
         if (msg.content.slice(0, 8) === "«SECURE»") {
             try {
-                updateMessage(msg.channel_id, msg.id, { content: await Native.decrypt(msg.content) });
+                updateMessage(msg.channel_id, msg.id, { content: await Native.decrypt(msg.content, settings.store.key) });
             }
             catch {
                 updateMessage(msg.channel_id, msg.id, { content: "FAILED OR ATTEMPTING DECRYPTION" });
@@ -140,7 +140,7 @@ export default definePlugin({
 addMessagePreSendListener(async (channelId, message, extra) => {
     try {
         if (settings.store.enabled && settings.store.key !== "") {
-            const encrypted = await Native.encrypt(message.content);
+            const encrypted = await Native.encrypt(message.content, settings.store.key);
             message.content = encrypted;
         }
     }

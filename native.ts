@@ -820,15 +820,13 @@ function hexToBytes(hex: string): Uint8Array {
 // THE SOFTWARE.
 
 // const key = hexToBytes("4b7f89bac90a1086fef73f5da2cbe93b2fae9dfbf7678ae1f3e75fd118ddf999");
-
-import { settings } from "./settings";
-
-const key = hexToBytes(settings.use(["key"]).key);
+// const key = hexToBytes(settings.store.key);
 
 type pkg = { n: [], d: []; };
 
-export async function encrypt(_, msg: string): Promise<string> {
+export async function encrypt(_, msg: string, keyHex: string): Promise<string> {
     try {
+        const key = hexToBytes(keyHex);
         const nonce: Uint8Array = randomBytes(24);
         const chacha = xchacha20poly1305(key, nonce);
         const data = new TextEncoder().encode(msg);
@@ -846,8 +844,9 @@ export async function encrypt(_, msg: string): Promise<string> {
     }
 }
 
-export async function decrypt(_, msg: string): Promise<string> {
+export async function decrypt(_, msg: string, keyHex: string): Promise<string> {
     try {
+        const key = hexToBytes(keyHex);
         const base64 = msg.slice(8, msg.length);
         const pkg: pkg = JSON.parse(Buffer.from(base64, "base64").toString());
         const nonce: Uint8Array = new Uint8Array(pkg.n);
