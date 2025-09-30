@@ -5,7 +5,6 @@
  */
 
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
-import { addMessagePreSendListener } from "@api/MessageEvents";
 import { updateMessage } from "@api/MessageUpdater";
 import { Margins } from "@utils/margins";
 import { closeModal, ModalCloseButton, ModalContent, ModalHeader, ModalRoot, openModal } from "@utils/modal";
@@ -102,7 +101,9 @@ const ChatBarIcon: ChatBarButtonFactory = ({ isMainChat }) => {
     return (
         <ChatBarButton
             tooltip="Insert Timestamp"
-            onClick={() => {
+            onClick={e => {
+                if (e.shiftKey) { settings.store.enabled = !settings.store.enabled; return; }
+
                 const key = openModal(props => (
                     <PickerModal
                         rootProps={props}
@@ -110,6 +111,7 @@ const ChatBarIcon: ChatBarButtonFactory = ({ isMainChat }) => {
                     />
                 ));
             }}
+            onContextMenu={() => settings.store.enabled = !settings.store.enabled}
             buttonProps={{ "aria-haspopup": "dialog" }}>
             <EncryptionIcon />
         </ChatBarButton >
@@ -124,7 +126,6 @@ export default definePlugin({
     settings,
     flux: {
         async LOAD_MESSAGES_SUCCESS(event) {
-            console.log(event);
             await decryptAllMessages(event.channelId);
         },
         MESSAGE_CREATE({ message, optimistic }: { message: Message; optimistic: boolean; }) {
@@ -134,17 +135,18 @@ export default definePlugin({
             }, 50);
 
         }
+    },
+    async onBeforeMessageSend(_, message) {
+        console.warn("test: ", message);
+        try {
+            if (settings.store.enabled && settings.store.key !== "") {
+                const encrypted = await Native.encrypt(message.content, settings.store.key);
+                message.content = encrypted;
+            }
+        }
+        catch (error) {
+            console.error("Encryption failed onBeforeMessageSend");
+        }
     }
 });
 
-addMessagePreSendListener(async (channelId, message, extra) => {
-    try {
-        if (settings.store.enabled && settings.store.key !== "") {
-            const encrypted = await Native.encrypt(message.content, settings.store.key);
-            message.content = encrypted;
-        }
-    }
-    catch (error) {
-        console.error("Encryption failed:", VencordNative.pluginHelpers.SecureEncryption as PluginNative<typeof import("./native.ts")>);
-    }
-});
