@@ -7,3 +7,4 @@ Now, you may be asking, "but how will my comrade be able to decipher what i'm ty
 Great question, messages are automatically decrypted if both parties are using the same key, allowing for instant, private communication.
 The extension is also toggleable, so you can easily enable and disable it whenever you want, and seamlessly integrates in with Vencord UI.
 
+[![Thumbnail](https://i.imgur.com/MFKNvQQ.png)](https://i.imgur.com/YlJHL19.mp4)

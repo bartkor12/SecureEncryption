@@ -18,8 +18,9 @@ import { MessageStore } from "webpack/common/stores";
 import { settings } from "./settings";
 const Native = VencordNative.pluginHelpers.SecureEncryption as PluginNative<typeof import("./native.ts")>;
 
-async function decryptAllMessages(channel_id) {
-    const messages = await MessageStore.getMessages(channel_id)?._array ?? [];
+async function decryptAllMessages(channel_id, range: number = 0) {
+    let messages: Message[] = await MessageStore.getMessages(channel_id)?._array ?? [];
+    if (range > 0) messages = messages.slice(messages.length - range, messages.length);
     for (const msg of messages) {
         if (msg.content.slice(0, 8) === "«SECURE»") {
             try {
@@ -128,25 +129,24 @@ export default definePlugin({
         async LOAD_MESSAGES_SUCCESS(event) {
             await decryptAllMessages(event.channelId);
         },
-        MESSAGE_CREATE({ message, optimistic }: { message: Message; optimistic: boolean; }) {
+        async MESSAGE_CREATE({ message, optimistic }: { message: Message; optimistic: boolean; }) {
             if (optimistic) return;
-            setTimeout(async () => {
-                await decryptAllMessages(message.channel_id);
-            }, 50);
-
+            await decryptAllMessages(message.channel_id, 30);
         }
     },
-    async onBeforeMessageSend(_, message) {
-        console.warn("test: ", message);
+    async onBeforeMessageSend(channelId, message, messageOptions) {
         try {
             if (settings.store.enabled && settings.store.key !== "") {
                 const encrypted = await Native.encrypt(message.content, settings.store.key);
                 message.content = encrypted;
             }
+            setTimeout(() => {
+                decryptAllMessages(channelId, 5);
+            }, 1500);
         }
         catch (error) {
             console.error("Encryption failed onBeforeMessageSend");
         }
-    }
+    },
 });
 
